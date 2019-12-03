@@ -56,6 +56,32 @@ function readLines(input) {
   })
 }
 
+function manhattanDistance(a, b) {
+  return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1])
+}
+
+// https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+function intersectSegments(a, b, c, d) {
+  let s1x = b[0] - a[0]
+  let s1y = b[1] - a[1]
+  let s2x = d[0] - c[0]
+  let s2y = d[1] - c[1]
+
+  let s = (-s1y * (a[0] - c[0]) + s1x * (a[1] - c[1])) / (-s2x * s1y + s1x * s2y)
+  let t = (s2x * (a[1] - c[1]) - s2y * (a[0] - c[0])) / (-s2x * s1y + s1x * s2y)
+
+  // Collision detected
+  if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+    return [a[0] + (t * s1x), a[1] + (t * s1y)];
+  }
+
+  return null; // No collision
+}
+
+function sortByManhattan(a, b) {
+  return (manhattanDistance([0, 0], a[0]) + manhattanDistance([0, 0], a[1])) - (manhattanDistance([0, 0], b[0]) + manhattanDistance([0, 0], b[1]))
+}
+
 async function main(filename) {
   const input = fs.createReadStream(filename);
   const wireList = await readLines(input)
@@ -91,50 +117,18 @@ async function main(filename) {
   const wire1 = wires[0]
   const wire2 = wires[1]
 
-  function sortByManhattan(a, b) {
-    return (manhattanDistance([0, 0], a[0]) + manhattanDistance([0, 0], a[1])) - (manhattanDistance([0, 0], b[0]) + manhattanDistance([0, 0], b[1]))
-  }
-
   wire1.sort(sortByManhattan)
   wire2.sort(sortByManhattan)
 
-  let closestIntersect = Infinity
   for (let segment1 of wire1) {
     for (let segment2 of wire2) {
       let intersect = intersectSegments(...segment1, ...segment2)
       if (!intersect) continue
-      if (
-        (intersect[0] === 0 && intersect[1] === 0)
-      ) continue
-      distance = manhattanDistance([0, 0], intersect)
-      if (distance < closestIntersect) {
-        closestIntersect = distance
-        return closestIntersect
-      }
+      if ((intersect[0] === 0 && intersect[1] === 0)) continue
+
+      return manhattanDistance([0, 0], intersect)
     }
   }
-}
-
-function manhattanDistance(a, b) {
-  return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1])
-}
-
-// https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
-function intersectSegments(a, b, c, d) {
-  let s1x = b[0] - a[0]
-  let s1y = b[1] - a[1]
-  let s2x = d[0] - c[0]
-  let s2y = d[1] - c[1]
-
-  let s = (-s1y * (a[0] - c[0]) + s1x * (a[1] - c[1])) / (-s2x * s1y + s1x * s2y)
-  let t = (s2x * (a[1] - c[1]) - s2y * (a[0] - c[0])) / (-s2x * s1y + s1x * s2y)
-
-  // Collision detected
-  if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
-    return [a[0] + (t * s1x), a[1] + (t * s1y)];
-  }
-
-  return null; // No collision
 }
 
 main('day3-test1.txt').then(res => console.log(res))
