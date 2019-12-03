@@ -34,11 +34,7 @@ function readLines(input) {
         while (index > -1) {
           var line = remaining.substring(last, index);
           last = index + 1;
-          if (wire === 1) {
-            wire.push(line)
-          } else {
-            wire.push(line)
-          }
+          wire.push(line)
           index = remaining.indexOf(',', last);
         }
 

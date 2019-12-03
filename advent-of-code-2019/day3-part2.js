@@ -1,5 +1,5 @@
-var fs = require('fs');
-
+const fs = require('fs');
+const assert = require('assert')
 /*
 The approach to finding the minimal distance to intersection is storing the number of steps taken so far to reach the start point of a line segment and the direction.
 No sorting will be done to find the intersections since we need to maiantain the order.
@@ -27,11 +27,7 @@ function readLines(input) {
         while (index > -1) {
           var line = remaining.substring(last, index);
           last = index + 1;
-          if (wire === 1) {
-            wire.push(line)
-          } else {
-            wire.push(line)
-          }
+          wire.push(line)
           index = remaining.indexOf(',', last);
         }
 
@@ -68,23 +64,23 @@ function intersectSegments(a, b, c, d) {
 }
 
 function stepsToIntersection(intersect, startPoint, direction) {
-  // console.log(intersect, startPoint, direction)
   let result
+  const [x, y] = startPoint
+  const [ix, iy] = intersect
   switch (direction) {
     case 'D':
-      result = startPoint[1] - intersect[1]
+      result = y - iy
       break
     case 'U':
-      result = intersect[1] - startPoint[1]
+      result = iy - y
       break
     case 'R':
-      result = intersect[0] - startPoint[0]
+      result = ix - x
       break
     case 'L':
-      result = startPoint[0] - intersect[0]
+      result = x - ix
       break
   }
-  // console.log(result)
   return result
 }
 
@@ -129,14 +125,16 @@ async function main(filename) {
 
   for (let segment1 of wire1) {
     for (let segment2 of wire2) {
-      let intersect = intersectSegments(segment1[0], segment1[1], segment2[0], segment2[1])
+      const [seg1p1, seg1p2, seg1stepsSoFar, seg1Direction] = segment1
+      const [seg2p1, seg2p2, seg2stepsSoFar, seg2Direction] = segment2
+      let intersect = intersectSegments(seg1p1, seg1p2, seg2p1, seg2p2)
       if (!intersect) continue
       if ((intersect[0] === 0 && intersect[1] === 0)) continue
 
       let totalStepsToIntercept = (
-        stepsToIntersection(intersect, segment1[0], segment1[3]) + segment1[2]
+        stepsToIntersection(intersect, seg1p1, seg1Direction) + seg1stepsSoFar
         +
-        stepsToIntersection(intersect, segment2[0], segment2[3]) + segment2[2]
+        stepsToIntersection(intersect, seg2p1, seg2Direction) + seg2stepsSoFar
       )
 
       return totalStepsToIntercept
@@ -144,5 +142,11 @@ async function main(filename) {
   }
 }
 
-main('day3-test1.txt').then(res => console.log(res))
-main('day3.txt').then(res => console.log(res))
+main('day3-test1.txt').then(res => {
+  console.log(res)
+  assert.equal(res, 30)
+})
+main('day3.txt').then(res => {
+  console.log(res)
+  assert.equal(res, 14012)
+})
