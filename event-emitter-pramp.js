@@ -15,12 +15,10 @@ class EventEmitter {
 
   // add to the events and remove itself after its called.
   once(name, cb) {
-    const wrappedCB = (...args) => {
+    this.on(name, function singleCB(...args) {
+      this.off(name, singleCB);
       cb(...args);
-      this.off(name, cb);
-    };
-
-    this.on(name, wrappedCB);
+    });
   }
 
   // Call all the callbacks linked to a name
@@ -30,7 +28,9 @@ class EventEmitter {
     }
 
     for (let cb of this.events[name]) {
-      cb(...args);
+      // ❗️The key! Need to use apply to Pass the correct this context to the call back.
+      // Just calling the callback would be fine, but not for the once method which needs a reference to this since its wrapping an off method call and can't be bound to this context dynamically.
+      cb.apply(this, args);
     }
   }
 
