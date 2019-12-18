@@ -33,31 +33,22 @@ class IntCodeComputer {
         return 0;
     }
   }
-  calculateParam(opMode, index) {
+
+  parsePointer(opMode, index) {
     let pointer;
     switch (opMode) {
       case 2:
         pointer = this.instructions[index] + this.relativeBase;
-        // console.log("i am a mode 2 param");
-        // console.log(pointer);
-        // console.log(index);
-        // console.log(this.instructions[pointer]);
-        // console.log(this.instructions);
-        return {
-          operand: this.instructions[pointer],
-          pointer
-        };
+        break;
       case 1:
         pointer = index;
-        return { operand: this.instructions[pointer], pointer };
+        break;
       case 0:
       default:
         pointer = this.instructions[index];
-        return {
-          operand: this.instructions[pointer],
-          pointer
-        };
     }
+
+    return pointer;
   }
 
   *runInstructions() {
@@ -69,20 +60,17 @@ class IntCodeComputer {
       let op1Mode = this.parseOpMode(string.charAt(string.length - 3));
       let op2Mode = this.parseOpMode(string.charAt(string.length - 4));
       let op3Mode = this.parseOpMode(string.charAt(string.length - 5));
-      let operand1 = this.calculateParam(op1Mode, i + 1);
-      let operand2 = this.calculateParam(op2Mode, i + 2);
-      let operand3 =
-        op3Mode === 1
-          ? i + 3
-          : this.instructions[i + 3] + (op3Mode === 2 ? +this.relativeBase : 0);
+      let operand1P = this.parsePointer(op1Mode, i + 1);
+      let operand2P = this.parsePointer(op2Mode, i + 2);
+      let operand1 = this.instructions[operand1P];
+      let operand2 = this.instructions[operand2P];
+      let operand3P = this.parsePointer(op3Mode, i + 3);
 
       if (opcode > 99) {
         opcode = this.instructions[i] % 100;
       }
-      const operand1P = operand1.pointer;
-      const operand2P = operand2.pointer;
-      operand1 = operand1.operand === undefined ? 0 : operand1.operand;
-      operand2 = operand2.operand === undefined ? 0 : operand2.operand;
+      operand1 = operand1 === undefined ? 0 : operand1;
+      operand2 = operand2 === undefined ? 0 : operand2;
       if (this.withLogger) {
         const names = {
           1: "add",
@@ -93,7 +81,8 @@ class IntCodeComputer {
           6: "skip if false",
           7: "set if less than",
           8: "set if equal",
-          9: "set relative base"
+          9: "set relative base",
+          99: "halt"
         };
         console.log(
           names[opcode],
@@ -103,7 +92,7 @@ class IntCodeComputer {
           "op2/op2 pointer:",
           `${operand2}/${operand2P}`,
           "op3",
-          operand3,
+          operand3P,
           "relative base",
           this.relativeBase
         );
@@ -111,26 +100,20 @@ class IntCodeComputer {
 
       switch (opcode) {
         case 1:
-          this.instructions[operand3] = operand1 + operand2;
+          this.instructions[operand3P] = operand1 + operand2;
           i += 4;
           continue;
         case 2:
-          this.instructions[operand3] = operand1 * operand2;
+          this.instructions[operand3P] = operand1 * operand2;
           i += 4;
           continue;
         case 3:
-          let index;
-          if (op1Mode === 2) {
-            index = this.instructions[i + 1] + this.relativeBase;
-          } else {
-            index = this.instructions[i + 1];
-          }
           if (!this.inputQueue.length) {
             // throw new Error("Missing inputs");
             yield "feed me more inputs"; // Get more instructions.
           }
 
-          this.instructions[index] = this.inputQueue.shift();
+          this.instructions[operand1P] = this.inputQueue.shift();
           // console.log("using input", this.instructions[index]);
           i += 2;
           continue;
@@ -168,12 +151,12 @@ class IntCodeComputer {
           continue;
         case 7:
           // result = operand1 < operand2 ? 1 : 0;
-          this.instructions[operand3] = operand1 < operand2 ? 1 : 0;
+          this.instructions[operand3P] = operand1 < operand2 ? 1 : 0;
           i += 4;
           continue;
         case 8:
           // result = operand1 === operand2 ? 1 : 0;
-          this.instructions[operand3] = operand1 === operand2 ? 1 : 0;
+          this.instructions[operand3P] = operand1 === operand2 ? 1 : 0;
           i += 4;
           continue;
         case 9:
