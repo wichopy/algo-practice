@@ -1,5 +1,5 @@
 class IntCodeComputer {
-  constructor({ name, withLogger } = {}) {
+  constructor({ name, withLogger, loggerFilter = () => {} } = {}) {
     this.name = name;
     this.instructions;
     this.initialInstructions;
@@ -7,6 +7,7 @@ class IntCodeComputer {
     this.lastOutput;
     this.relativeBase = 0;
     this.withLogger = withLogger;
+    this.loggerFilter = loggerFilter;
   }
 
   async build(instructionSet) {
@@ -71,7 +72,7 @@ class IntCodeComputer {
       }
       operand1 = operand1 === undefined ? 0 : operand1;
       operand2 = operand2 === undefined ? 0 : operand2;
-      if (this.withLogger) {
+      if (this.withLogger && this.loggerFilter(opcode)) {
         const names = {
           1: "add",
           2: "multiply",
@@ -109,7 +110,7 @@ class IntCodeComputer {
           continue;
         case 3:
           if (!this.inputQueue.length) {
-            // throw new Error("Missing inputs");
+            throw new Error("Missing inputs");
             yield "feed me more inputs"; // Get more instructions.
           }
 
