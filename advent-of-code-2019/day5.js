@@ -24,6 +24,7 @@ async function main(testInput, filename) {
   while (i < instructions.length) {
     if (instructions[i] === 3) {
       // Input at next index
+      console.log("using input:", testInput);
       const index = instructions[i + 1];
       instructions[index] = testInput;
       i += 2;
@@ -100,6 +101,7 @@ async function main(testInput, filename) {
         i += 2;
         continue;
       default:
+        console.log("pointer", i);
         throw new Error("Unidentified op code" + opcode);
     }
     break;
@@ -131,5 +133,6 @@ function test(value, instructions) {
   }
 }
 
-console.log(test(1, [3, 0, 4, 0, 99]));
-main(1, "day5.txt");
+// console.log(test(1, [3, 0, 4, 0, 99]));
+// main(1, "day5.txt");
+main(0, "day7.txt");

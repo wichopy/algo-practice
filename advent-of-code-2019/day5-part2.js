@@ -1,4 +1,5 @@
 var fs = require("fs");
+const assert = require("assert");
 
 function readLines(input) {
   return new Promise((res, rej) => {
@@ -15,12 +16,18 @@ function readLines(input) {
   });
 }
 
-async function main(testInput, filename) {
-  const input = fs.createReadStream(filename);
-  const instructions = await readLines(input);
+async function intcode(inputQueue, instructionSet) {
+  let instructions;
 
-  // console.log(instructions, instructions.length);
+  if (typeof instructionSet !== "string") {
+    instructions = instructionSet;
+  } else {
+    const input = fs.createReadStream(instructionSet);
+    instructions = await readLines(input);
+  }
+
   let i = 0;
+  let lastOutput;
   while (i < instructions.length) {
     let opcode = instructions[i];
     let string = String(instructions[i]);
@@ -49,16 +56,16 @@ async function main(testInput, filename) {
       8: "set if equal"
     };
 
-    console.log(
-      opcode,
-      op1Mode,
-      op2Mode,
-      op3Mode,
-      operand1,
-      operand2,
-      operand3,
-      names[opcode]
-    );
+    // console.log(
+    //   opcode,
+    //   op1Mode,
+    //   op2Mode,
+    //   op3Mode,
+    //   operand1,
+    //   operand2,
+    //   operand3,
+    //   names[opcode]
+    // );
     switch (opcode) {
       case 1:
         // let operand1 = instructions[instructions[i + 1]];
@@ -66,20 +73,23 @@ async function main(testInput, filename) {
         // let resultIndex = instructions[i + 3];
         // let result = operand1 + operand2;
         instructions[operand3] = operand1 + operand2;
+        // console.log("add", operand1, operand2);
         i += 4;
         continue;
       case 2:
         instructions[operand3] = operand1 * operand2;
+        // console.log("multiply", operand1, operand2);
         i += 4;
         continue;
       case 3:
-        console.log("using input:", testInput);
         const index = instructions[i + 1];
-        instructions[index] = testInput;
+        instructions[index] = inputQueue.shift();
+        // console.log("input:", instructions[index]);
         i += 2;
         continue;
       case 4:
-        console.log("Output Result position:", operand1, i + 1);
+        // console.log("output ", operand1);
+        lastOutput = operand1;
         i += 2;
         continue;
       case 5:
@@ -111,8 +121,8 @@ async function main(testInput, filename) {
         i += 4;
         continue;
       case 99:
-        console.log("99: stop");
-        return;
+        // console.log("99: stop");
+        return lastOutput;
       default:
         console.log("pointer", i);
         throw new Error("Unidentified op code" + opcode);
@@ -120,118 +130,188 @@ async function main(testInput, filename) {
   }
 }
 
-function test(value, instructions) {
-  let i = 0;
-  while (true) {
-    if (instructions[i] === 3) {
-      let input = value;
-      let output = instructions[i + 1];
-      instructions[output] = input;
-      i += 2;
-      continue;
-    }
+// function test(value, instructions) {
+//   let i = 0;
+//   while (true) {
+//     if (instructions[i] === 3) {
+//       let input = value;
+//       let output = instructions[i + 1];
+//       instructions[output] = input;
+//       i += 2;
+//       continue;
+//     }
 
-    if (instructions[i] === 4) {
-      let index = i + 1;
-      console.log("output ", instructions[instructions[index]]);
-      i += 2;
-      continue;
-    }
+//     if (instructions[i] === 4) {
+//       let index = i + 1;
+//       console.log("output ", instructions[instructions[index]]);
+//       i += 2;
+//       continue;
+//     }
 
-    if (instructions[i] === 99) {
-      console.log("halting");
-      return;
-    }
-  }
-}
+//     if (instructions[i] === 99) {
+//       console.log("halting");
+//       return;
+//     }
+//   }
+// }
 
-function testSomething(input, instructions) {
-  let i = 0;
-  while (true) {
-    let opcode = instructions[i];
-    let string = String(instructions[i]);
-    let op1Mode = string.charAt(string.length - 3) === "1" ? 1 : 0;
-    let op2Mode = string.charAt(string.length - 4) === "1" ? 1 : 0;
-    let op3Mode = string.charAt(string.length - 5) === "1" ? 1 : 0;
-    if (opcode > 99) {
-      opcode = instructions[i] % 100;
-      console.log(opcode, op1Mode, op2Mode, op3Mode);
-    }
-    if (opcode === 3) {
-      instructions[instructions[i + 1]] = input;
-      i += 2;
-      continue;
-    }
-    if (opcode === 5) {
-      // Set pointer to value at second param (position or immediate) if first param is not 0
-      if (instructions[instructions[i + 1]] !== 0) {
-        i = instructions[i + 2];
-      } else {
-        // otherwise skip
-        i += 3;
-      }
+// function testSomething(input, instructions) {
+//   let i = 0;
+//   while (true) {
+//     let opcode = instructions[i];
+//     let string = String(instructions[i]);
+//     let op1Mode = string.charAt(string.length - 3) === "1" ? 1 : 0;
+//     let op2Mode = string.charAt(string.length - 4) === "1" ? 1 : 0;
+//     let op3Mode = string.charAt(string.length - 5) === "1" ? 1 : 0;
+//     if (opcode > 99) {
+//       opcode = instructions[i] % 100;
+//       console.log(opcode, op1Mode, op2Mode, op3Mode);
+//     }
+//     if (opcode === 3) {
+//       instructions[instructions[i + 1]] = input;
+//       i += 2;
+//       continue;
+//     }
+//     if (opcode === 5) {
+//       // Set pointer to value at second param (position or immediate) if first param is not 0
+//       if (instructions[instructions[i + 1]] !== 0) {
+//         i = instructions[i + 2];
+//       } else {
+//         // otherwise skip
+//         i += 3;
+//       }
 
-      continue;
-    }
+//       continue;
+//     }
 
-    if (opcode === 6) {
-      console.log("op code 6");
-      // Set pointer to value at second param (position or immediate) if first param is 0
-      if (instructions[instructions[i + 1]] === 0) {
-        i = instructions[instructions[i + 2]];
-      } else {
-        // otherwise skip
-        i += 3;
-      }
+//     if (opcode === 6) {
+//       console.log("op code 6");
+//       // Set pointer to value at second param (position or immediate) if first param is 0
+//       if (instructions[instructions[i + 1]] === 0) {
+//         i = instructions[instructions[i + 2]];
+//       } else {
+//         // otherwise skip
+//         i += 3;
+//       }
 
-      continue;
-    }
-    if (opcode === 8) {
-      result =
-        instructions[instructions[i + 1]] === instructions[instructions[i + 2]]
-          ? 1
-          : 0;
-      instructions[instructions[i + 3]] = result;
-      i += 4;
-      continue;
-    }
-    if (opcode === 7) {
-      result =
-        instructions[instructions[i + 1]] < instructions[instructions[i + 2]]
-          ? 1
-          : 0;
-      instructions[instructions[i + 3]] = result;
-      i += 4;
-      continue;
-    }
-    if (opcode === 4) {
-      console.log(instructions[operand1]);
-      i += 2;
-      continue;
-    }
+//       continue;
+//     }
+//     if (opcode === 8) {
+//       result =
+//         instructions[instructions[i + 1]] === instructions[instructions[i + 2]]
+//           ? 1
+//           : 0;
+//       instructions[instructions[i + 3]] = result;
+//       i += 4;
+//       continue;
+//     }
+//     if (opcode === 7) {
+//       result =
+//         instructions[instructions[i + 1]] < instructions[instructions[i + 2]]
+//           ? 1
+//           : 0;
+//       instructions[instructions[i + 3]] = result;
+//       i += 4;
+//       continue;
+//     }
+//     if (opcode === 4) {
+//       console.log(instructions[operand1]);
+//       i += 2;
+//       continue;
+//     }
 
-    if (opcode === 1) {
-      instructions[instructions[i + 3]] =
-        instructions[instructions[i + 1]] + instructions[instructions[i + 2]];
-      i += 4;
-      continue;
-    }
+//     if (opcode === 1) {
+//       instructions[instructions[i + 3]] =
+//         instructions[instructions[i + 1]] + instructions[instructions[i + 2]];
+//       i += 4;
+//       continue;
+//     }
 
-    if (opcode === 2) {
-      console.log(instructions[instructions[i + 1]]);
-      i += 2;
-      continue;
-    }
-    if (opcode === 99) {
-      return;
-    }
-  }
-}
+//     if (opcode === 2) {
+//       console.log(instructions[instructions[i + 1]]);
+//       i += 2;
+//       continue;
+//     }
+//     if (opcode === 99) {
+//       return;
+//     }
+//   }
+// }
 
 // console.log(
 // testSomething(0, [3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9])
 //                                                    9         12  13 14 15
 // );
 // console.log(test(1, [3, 0, 4, 0, 99]));
-main(5, "day5.txt");
-// main(0, "day7.txt");
+// 43210
+// main(
+//   [0, 4321],
+//   [3, 15, 3, 16, 1002, 16, 10, 16, 1, 16, 15, 15, 4, 15, 99, 0, 0]
+// );
+
+async function main(instructionSet) {
+  const nums = [0, 1, 2, 3, 4];
+  const combos = [];
+  function makeCombos(start, end) {
+    if (start === end) {
+      combos.push([...nums]);
+      return;
+    }
+    for (let i = start; i <= end; i++) {
+      let temp = nums[start];
+      nums[start] = nums[i];
+      nums[i] = temp;
+      makeCombos(start + 1, end);
+      temp = nums[i];
+      nums[i] = nums[start];
+      nums[start] = temp;
+    }
+  }
+
+  makeCombos(0, 4);
+  // console.log(combos);
+
+  let max = -Infinity;
+  let maxOrientation = "";
+  // Cache partially complete calculations to reduce repetition
+  const memo = {};
+  for (let index = 0; index < combos.length; index++) {
+    let key = "";
+    let input = 0;
+    for (let i = 0; i < combos[index].length; i++) {
+      key += combos[index][i];
+      if (memo[key]) {
+        input = memo[key];
+      } else {
+        input = await intcode([combos[index][i], input], instructionSet);
+        memo[key] = input;
+      }
+    }
+
+    if (input > max) {
+      max = input;
+      maxOrientation = key;
+    }
+  }
+
+  console.log(max, maxOrientation);
+  return max;
+}
+
+intcode([5], "day5.txt").then(res => {
+  assert.equal(res, 918655);
+});
+
+main("day7.txt").then(res => console.log("day 7 part 1: ", res));
+
+main("day7test2.txt").then(res => {
+  assert.equal(res, 43210);
+});
+
+main("day7test1.txt").then(res => {
+  assert.equal(res, 65210);
+});
+
+main("day7test3.txt").then(res => {
+  assert.equal(res, 54321);
+});
